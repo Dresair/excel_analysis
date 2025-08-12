@@ -1,0 +1,50 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [ main ]   # main分支推送时触发
+  workflow_dispatch:     # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      # 拉取代码
+      - uses: actions/checkout@v3
+
+      # 安装 Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'   # 你项目用的Python版本
+
+      # 安装依赖
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # 构建前端（可选，如果有前端 dist）
+      # - name: Build frontend
+      #   run: |
+      #     cd frontend
+      #     npm install
+      #     npm run build
+      #     cd ..
+
+      # 打包成单文件可执行程序
+      - name: Build executable
+        run: |
+          pyinstaller --onefile --clean main.py
+
+      # 上传打包产物到 GitHub（Artifacts）
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: myapp-${{ matrix.os }}
+          path: dist/*
