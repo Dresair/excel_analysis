@@ -1,0 +1,82 @@
+# 指令：生成结构化的PPT大纲
+
+## 任务
+你需要根据用户需求和数据表，生成一个结构化的JSON格式PPT大纲。
+
+## 输出格式要求
+你必须返回严格的JSON格式，结构如下：
+```json
+{
+  "title": "PPT主标题",
+  "subtitle": "副标题或日期",
+  "sections": [
+    {
+      "section_number": "1",
+      "section_title": "章节标题",
+      "subsections": [
+        {
+          "subsection_number": "1.1",
+          "subsection_title": "子章节标题",
+          "analysis_type": "distribution|comparison|trend|summary",
+          "chart_type": "pie|column|line|bar|none",
+          "data_query": "需要查询的数据描述",
+          "key_points": ["要点1", "要点2"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## 字段说明
+- analysis_type: 分析类型
+  - distribution: 分布分析（适合饼图）
+  - comparison: 对比分析（适合柱状图/条形图）
+  - trend: 趋势分析（适合折线图）
+  - summary: 总结归纳（纯文本）
+  
+- chart_type: 图表类型
+  - pie: 饼图（用于展示占比、分布）
+  - column: 柱状图（用于对比、排名）
+  - bar: 条形图（用于横向对比）
+  - line: 折线图（用于趋势、变化）
+  - none: 无图表（纯文本）
+
+## 规则
+1. 每个章节至少包含2-3个子章节
+2. 根据用户需求和数据特点选择合适的分析类型和图表
+3. data_query字段应该描述清楚需要什么数据
+
+## 示例输出
+```json
+{
+  "title": "2024年度销售分析报告",
+  "subtitle": "数据分析与洞察",
+  "sections": [
+    {
+      "section_number": "1",
+      "section_title": "销售总览",
+      "subsections": [
+        {
+          "subsection_number": "1.1",
+          "subsection_title": "年度销售总额统计",
+          "analysis_type": "summary",
+          "chart_type": "none",
+          "data_query": "计算所有销售数据的总金额、总订单数、平均订单金额",
+          "key_points": ["展示核心业务指标", "同比增长情况"]
+        },
+        {
+          "subsection_number": "1.2",
+          "subsection_title": "各月销售趋势分析",
+          "analysis_type": "trend",
+          "chart_type": "line",
+          "data_query": "按月份汇总销售金额，展示全年趋势",
+          "key_points": ["识别销售旺季", "分析季节性波动"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+请严格按照JSON格式输出，不要包含任何其他文字说明。

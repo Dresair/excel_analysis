@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPT生成工具 - AI驱动的数据分析与演示文稿生成</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航栏 -->
+        <header class="header">
+            <div class="container">
+                <div class="nav">
+                    <div class="logo">
+                        <i class="fas fa-chart-line"></i>
+                        <span>PPT生成工具</span>
+                    </div>
+                    <div class="nav-actions">
+                        <button class="btn btn-outline" onclick="openSettings()">
+                            <i class="fas fa-cog"></i>
+                            设置
+                        </button>
+                        <button class="btn btn-outline" onclick="toggleTheme()">
+                            <i class="fas fa-moon"></i>
+                            <span id="theme-text">深色模式</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main">
+            <div class="container">
+                <!-- 欢迎区域 -->
+                <div id="welcome-section" class="welcome-section">
+                    <div class="welcome-content">
+                        <h1>
+                            <i class="fas fa-magic"></i>
+                            AI驱动的PPT生成工具
+                        </h1>
+                        <p class="subtitle">上传Excel数据，通过自然语言对话生成专业的演示文稿</p>
+                        
+                        <!-- 上传区域 -->
+                        <div class="upload-area" id="upload-area">
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h3>拖拽Excel文件到此处</h3>
+                                <p>或者 <span class="upload-link" onclick="triggerFileInput()">点击选择文件</span></p>
+                                <p class="file-hint">支持 .xlsx 和 .xls 格式</p>
+                            </div>
+                            <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;">
+                        </div>
+
+                        <!-- 特性介绍 -->
+                        <div class="features">
+                            <div class="feature">
+                                <i class="fas fa-table"></i>
+                                <h4>Excel分析</h4>
+                                <p>智能解析Excel数据结构</p>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-comments"></i>
+                                <h4>对话分析</h4>
+                                <p>通过自然语言提问分析数据</p>
+                            </div>
+                            <div class="feature">
+                                <i class="fas fa-presentation"></i>
+                                <h4>PPT生成</h4>
+                                <p>基于模板自动生成专业PPT</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工作区域 -->
+                <div id="workspace-section" class="workspace-section" style="display: none;">
+                    <div class="workspace-grid">
+                        <!-- 左侧：文件信息和输出文件 -->
+                        <div class="sidebar">
+                            <div class="file-info card">
+                                <h3><i class="fas fa-file-excel"></i> 当前文件</h3>
+                                <div id="current-file">
+                                    <p id="file-name">未选择文件</p>
+                                    <button class="btn btn-sm btn-outline" onclick="uploadNewFile()">
+                                        <i class="fas fa-upload"></i>
+                                        重新上传
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="quick-actions card">
+                                <h3><i class="fas fa-bolt"></i> 快速操作</h3>
+                                <div class="action-buttons">
+                                    <button class="btn btn-sm" onclick="quickAnalysis('数据概览')">
+                                        <i class="fas fa-eye"></i>
+                                        数据概览
+                                    </button>
+                                    <button class="btn btn-sm" onclick="quickAnalysis('生成销售报告PPT')">
+                                        <i class="fas fa-chart-bar"></i>
+                                        生成报告
+                                    </button>
+                                    <button class="btn btn-sm" onclick="quickAnalysis('数据统计分析')">
+                                        <i class="fas fa-calculator"></i>
+                                        统计分析
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="output-files card">
+                                <h3><i class="fas fa-folder"></i> 生成的文件</h3>
+                                <div id="output-list">
+                                    <!-- 输出文件列表将在这里显示 -->
+                                </div>
+                                <button class="btn btn-sm btn-outline" onclick="refreshOutputFiles()">
+                                    <i class="fas fa-sync"></i>
+                                    刷新列表
+                                </button>
+                            </div>
+
+                            <!-- PPT生成进度 -->
+                            <div id="ppt-progress" class="progress-card card" style="display: none;">
+                                <h3><i class="fas fa-cog fa-spin"></i> 生成进度</h3>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                                <p id="progress-text">正在生成PPT...</p>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：聊天对话（现在更宽敞） -->
+                        <div class="chat-container card">
+                            <div class="chat-header">
+                                <h3><i class="fas fa-robot"></i> AI助手对话</h3>
+                                <button class="btn btn-sm btn-outline" onclick="clearChat()">
+                                    <i class="fas fa-trash"></i>
+                                    清空记录
+                                </button>
+                            </div>
+                            
+                            <div class="chat-messages" id="chat-messages">
+                                <!-- 聊天消息将在这里显示 -->
+                            </div>
+                            
+                            <div class="chat-input-container">
+                                <div class="chat-input-wrapper">
+                                    <textarea 
+                                        id="chat-input" 
+                                        placeholder="描述你的需求，例如：分析销售数据趋势，或生成月度汇报PPT..."
+                                        rows="3"
+                                    ></textarea>
+                                    <div class="input-actions">
+                                        <button class="btn btn-primary" onclick="sendMessage()" id="send-btn">
+                                            <i class="fas fa-paper-plane"></i>
+                                            发送
+                                        </button>
+                                        <button class="btn btn-success" onclick="generatePPT()" id="ppt-btn">
+                                            <i class="fas fa-magic"></i>
+                                            生成PPT
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 设置模态框 -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-cog"></i> 系统设置</h3>
+                    <button class="modal-close" onclick="closeSettings()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="settings-form">
+                        <div class="form-group">
+                            <label for="api-key">API Key:</label>
+                            <input type="password" id="api-key" placeholder="请输入OpenAI API Key">
+                        </div>
+                        <div class="form-group">
+                            <label for="base-url">API地址:</label>
+                            <input type="text" id="base-url" placeholder="https://api.openai.com/v1">
+                        </div>
+                        <div class="form-group">
+                            <label for="model">模型:</label>
+                            <select id="model">
+                                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                <option value="gpt-4o">gpt-4o</option>
+                                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeSettings()">取消</button>
+                    <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载指示器 -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>处理中...</p>
+        </div>
+    </div>
+
+    <!-- 引入JavaScript -->
+    <script src="/static/script.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,254 @@
+[
+{
+    "type": "function",
+    "function": {
+        "name": "create_pptx_presentation",
+        "description": "创建pptx文件。支持生成封面页、章节页和内容页。内容页支持两种布局：default（瀑布流）和two_column（两栏布局）。内容页可以包含文本、项目符号列表、表格和各种类型的图表。使用场景：1.生成报告演示文稿;2.创建项目汇报材料;3.制作培训课件;4.生成数据分析展示。注意事项：每个幻灯片必须指定type（cover/section/content）;图表数据的categories数量必须与每个series的数据点数量一致;表格的每行数据数量必须与表头数量一致;在two_column布局中需要为每个内容项指定column属性（1或2）;文件会自动保存为.pptx格式",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "json_content": {
+                    "type": "object",
+                    "description": "演示文稿的JSON结构定义",
+                    "properties": {
+                        "slides": {
+                            "type": "array",
+                            "description": "幻灯片数组，按顺序定义每个幻灯片",
+                            "items": {
+                                "type": "object",
+                                "oneOf": [
+                                    {
+                                        "description": "封面幻灯片",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["cover"],
+                                                "description": "幻灯片类型：封面"
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "description": "主标题文本"
+                                            },
+                                            "subtitle": {
+                                                "type": "string",
+                                                "description": "副标题文本（可选）"
+                                            }
+                                        },
+                                        "required": ["type", "title"]
+                                    },
+                                    {
+                                        "description": "章节页幻灯片",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["section"],
+                                                "description": "幻灯片类型：章节页"
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "description": "章节标题"
+                                            },
+                                            "subtitle": {
+                                                "type": "string",
+                                                "description": "章节副标题（可选）"
+                                            }
+                                        },
+                                        "required": ["type", "title"]
+                                    },
+                                    {
+                                        "description": "内容页幻灯片",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["content"],
+                                                "description": "幻灯片类型：内容页"
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "description": "页面标题（可选）"
+                                            },
+                                            "layout": {
+                                                "type": "string",
+                                                "enum": ["default", "two_column"],
+                                                "description": "页面布局类型：default为瀑布流布局，two_column为两栏布局。默认为default"
+                                            },
+                                            "contents": {
+                                                "type": "array",
+                                                "description": "内容项数组，支持文本、表格和图表",
+                                                "items": {
+                                                    "type": "object",
+                                                    "oneOf": [
+                                                        {
+                                                            "description": "文本内容",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": ["text"],
+                                                                    "description": "内容类型：文本"
+                                                                },
+                                                                "text": {
+                                                                    "type": "string",
+                                                                    "description": "主要文本内容"
+                                                                },
+                                                                "bullet_points": {
+                                                                    "type": "array",
+                                                                    "description": "项目符号列表，支持多级嵌套。可以是字符串数组（简单列表）或对象数组（多级列表）",
+                                                                    "items": {
+                                                                        "oneOf": [
+                                                                            {
+                                                                                "type": "string",
+                                                                                "description": "简单列表项"
+                                                                            },
+                                                                            {
+                                                                                "type": "object",
+                                                                                "description": "多级列表项",
+                                                                                "properties": {
+                                                                                    "text": {
+                                                                                        "type": "string",
+                                                                                        "description": "列表项文本"
+                                                                                    },
+                                                                                    "level": {
+                                                                                        "type": "integer",
+                                                                                        "minimum": 0,
+                                                                                        "maximum": 4,
+                                                                                        "description": "缩进级别（0-4），0为最高级"
+                                                                                    }
+                                                                                },
+                                                                                "required": ["text", "level"]
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "column": {
+                                                                    "type": "integer",
+                                                                    "enum": [1, 2],
+                                                                    "description": "列位置（仅在two_column布局中使用）：1为左列，2为右列"
+                                                                }
+                                                            },
+                                                            "required": ["type"]
+                                                        },
+                                                        {
+                                                            "description": "图表内容",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": ["chart"],
+                                                                    "description": "内容类型：图表"
+                                                                },
+                                                                "chart_type": {
+                                                                    "type": "string",
+                                                                    "enum": ["column", "bar", "line", "pie", "area"],
+                                                                    "description": "图表类型：柱状图/条形图/折线图/饼图/面积图"
+                                                                },
+                                                                "chart_title": {
+                                                                    "type": "string",
+                                                                    "description": "图表标题"
+                                                                },
+                                                                "data": {
+                                                                    "type": "object",
+                                                                    "description": "图表数据",
+                                                                    "properties": {
+                                                                        "categories": {
+                                                                            "type": "array",
+                                                                            "description": "类别标签（X轴）",
+                                                                            "items": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "series": {
+                                                                            "type": "object",
+                                                                            "description": "数据系列，键为系列名称，值为数据数组",
+                                                                            "additionalProperties": {
+                                                                                "type": "array",
+                                                                                "items": {
+                                                                                    "type": "number"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "required": ["categories", "series"]
+                                                                },
+                                                                "column": {
+                                                                    "type": "integer",
+                                                                    "enum": [1, 2],
+                                                                    "description": "列位置（仅在two_column布局中使用）：1为左列，2为右列"
+                                                                }
+                                                            },
+                                                            "required": ["type", "chart_type", "data"]
+                                                        },
+                                                        {
+                                                            "description": "表格内容",
+                                                            "properties": {
+                                                                "type": {
+                                                                    "type": "string",
+                                                                    "enum": ["table"],
+                                                                    "description": "内容类型：表格"
+                                                                },
+                                                                "table_title": {
+                                                                    "type": "string",
+                                                                    "description": "表格标题（可选）"
+                                                                },
+                                                                "headers": {
+                                                                    "type": "array",
+                                                                    "description": "表头数组",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "rows": {
+                                                                    "type": "array",
+                                                                    "description": "表格数据行，每行为一个数组",
+                                                                    "items": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "column": {
+                                                                    "type": "integer",
+                                                                    "enum": [1, 2],
+                                                                    "description": "列位置（仅在two_column布局中使用）：1为左列，2为右列"
+                                                                }
+                                                            },
+                                                            "required": ["type", "headers", "rows"]
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "required": ["type"]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "required": ["slides"]
+                },
+                "output_filename": {
+                    "type": "string",
+                    "description": "输出文件名（不含pptx）"
+                }
+            },
+            "required": ["json_content", "output_filename"]
+        }
+    }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "execute_sql",
+        "description": "在用户上传的数据表上执行SQL查询并返回结果。支持单语句或多语句查询（用分号分隔）。对用户上传的表格数据进行分析和计算。当需要进行筛选、聚合、分组、排序、连接或任何复杂的数据计算时，请使用此工具。SQL方言为DuckDB。用于回答关于数据的任何分析性问题，例如 '哪个产品的总销售额最高？', '统计每个月的用户增长数', '找出2023年第二季度的所有交易' 等。查询结果将用于最终回答或生成图表。多语句示例：'SELECT COUNT(*) FROM table1; SELECT SUM(sales) FROM table1 WHERE year=2024;'",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sql_query": {
+                    "type": "string",
+                    "description": "要执行的SQL查询语句。可以是单个语句或多个语句（用分号;分隔）。表名需要根据实际上传的Excel sheet名称来使用。列名如果包含特殊字符或空格，应使用双引号括起来，例如 SELECT \"销售额\" FROM tablename。"
+                }
+            },
+            "required": ["sql_query"]
+        }
+    }
+}
+]
