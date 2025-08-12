@@ -1,4 +1,4 @@
-name: Build Executables (Windows & macOS)
+name: Build PPT生成工具 (Windows & macOS)
 
 on:
   push:
@@ -19,13 +19,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller     # 只装 PyInstaller
+          pip install pyinstaller
 
       # 安装 UPX (不同系统不同方法)
       - name: Install UPX on macOS
@@ -41,30 +41,66 @@ jobs:
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          pyinstaller --onefile --clean `
+          pyinstaller --onefile --windowed --optimize=2 --clean `
             --exclude-module tkinter `
-            --exclude-module test `
-            --exclude-module email `
-            main.py
+            --exclude-module matplotlib `
+            --exclude-module scipy `
+            --exclude-module IPython `
+            --exclude-module jupyter `
+            --exclude-module notebook `
+            --exclude-module pytest `
+            --exclude-module setuptools `
+            --exclude-module distutils `
+            --exclude-module pip `
+            --hidden-import=uvicorn.loops.auto `
+            --hidden-import=uvicorn.protocols.http.auto `
+            --hidden-import=uvicorn.protocols.websockets.auto `
+            --hidden-import=uvicorn.lifespan.on `
+            --add-data "static;static" `
+            --add-data "prompts;prompts" `
+            --add-data "模板.pptx;." `
+            --name "PPT生成工具" `
+            web_app.py
         shell: pwsh
 
       - name: Build executable (Mac)
         if: matrix.os == 'macos-latest'
         run: |
-          pyinstaller --onefile --clean \
+          pyinstaller --onefile --windowed --optimize=2 --clean \
             --exclude-module tkinter \
-            --exclude-module test \
-            --exclude-module email \
-            main.py
+            --exclude-module matplotlib \
+            --exclude-module scipy \
+            --exclude-module IPython \
+            --exclude-module jupyter \
+            --exclude-module notebook \
+            --exclude-module pytest \
+            --exclude-module setuptools \
+            --exclude-module distutils \
+            --exclude-module pip \
+            --hidden-import=uvicorn.loops.auto \
+            --hidden-import=uvicorn.protocols.http.auto \
+            --hidden-import=uvicorn.protocols.websockets.auto \
+            --hidden-import=uvicorn.lifespan.on \
+            --add-data "static:static" \
+            --add-data "prompts:prompts" \
+            --add-data "模板.pptx:." \
+            --name "PPT生成工具" \
+            web_app.py
         shell: bash
 
-      # 压缩
+      # 压缩（跳过失败的文件）
       - name: Compress with UPX
-        run: upx dist/*
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            upx --best dist/*.exe || echo "UPX compression failed, continuing..."
+          else
+            upx --best dist/* || echo "UPX compression failed, continuing..."
+          fi
+        shell: bash
 
       # 上传 Artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-${{ matrix.os }}
+          name: PPT生成工具-${{ matrix.os }}
           path: dist/*
