@@ -58,6 +58,7 @@ jobs:
             --hidden-import=uvicorn.lifespan.on `
             --add-data "static;static" `
             --add-data "prompts;prompts" `
+            --add-data "tools/pptx_json.json;tools" `
             --add-data "模板.pptx;." `
             --name "PPTgenerator" `
             web_app.py
@@ -83,6 +84,7 @@ jobs:
             --hidden-import=uvicorn.lifespan.on \
             --add-data "static:static" \
             --add-data "prompts:prompts" \
+            --add-data "tools/pptx_json.json:tools" \
             --add-data "模板.pptx:." \
             --name "PPTgenerator" \
             web_app.py

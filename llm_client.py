@@ -8,6 +8,7 @@ import os
 import dotenv
 from datetime import datetime
 from tools.message_variable_processor import MessageVariableProcessor
+from path_manager import path_manager
 dotenv.load_dotenv()
 
 # 设置日志
@@ -291,8 +292,8 @@ class OpenAIConnector:
         
         # 尝试加载工具定义文件
         try:
-            tools_file_path = 'tools/pptx_json.json'
-            if os.path.exists(tools_file_path):
+            tools_file_path = path_manager.get_resource_path('tools/pptx_json.json')
+            if tools_file_path.exists():
                 with open(tools_file_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             else:
@@ -321,8 +322,8 @@ class OpenAIConnector:
         
         # 同时写入文件
         try:
-            os.makedirs('log', exist_ok=True)
-            with open('log/llm_interactions.log', 'a', encoding='utf-8') as f:
+            log_file_path = path_manager.get_log_path('llm_interactions.log')
+            with open(log_file_path, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
         except Exception as e:
             logger.warning(f"写入LLM交互日志失败: {e}")

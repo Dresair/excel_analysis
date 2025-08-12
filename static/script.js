@@ -765,3 +765,210 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// ============ 日志功能 ============
+
+// 打开日志模态框
+function openLogs() {
+    const modal = document.getElementById('logs-modal');
+    modal.style.display = 'block';
+    // 默认加载LLM日志
+    switchLogTab('llm');
+}
+
+// 关闭日志模态框
+function closeLogs() {
+    const modal = document.getElementById('logs-modal');
+    modal.style.display = 'none';
+}
+
+// 切换日志标签页
+function switchLogTab(tabType) {
+    // 更新标签页状态
+    document.querySelectorAll('.log-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`.log-tab[onclick="switchLogTab('${tabType}')"]`).classList.add('active');
+    
+    // 更新面板显示
+    document.querySelectorAll('.log-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    document.getElementById(`${tabType}-logs`).classList.add('active');
+    
+    // 加载对应的日志
+    refreshLogs(tabType);
+}
+
+// 刷新日志
+async function refreshLogs(logType) {
+    const container = document.getElementById(`${logType}-log-container`);
+    container.innerHTML = '<div class="loading">正在加载日志...</div>';
+    
+    try {
+        let response;
+        switch(logType) {
+            case 'llm':
+                response = await fetch('/api/logs/llm?limit=50');
+                break;
+            case 'system':
+                response = await fetch('/api/logs/system?limit=100');
+                break;
+            case 'info':
+                response = await fetch('/api/logs/info');
+                break;
+            default:
+                throw new Error('未知的日志类型');
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        displayLogs(logType, data, container);
+        
+    } catch (error) {
+        console.error('加载日志失败:', error);
+        container.innerHTML = `<div class="loading" style="color: var(--danger-color);">加载失败: ${error.message}</div>`;
+    }
+}
+
+// 显示日志
+function displayLogs(logType, data, container) {
+    if (logType === 'info') {
+        displayLogInfo(data, container);
+        return;
+    }
+    
+    const logs = data.logs || [];
+    const totalCount = data.total_count || 0;
+    
+    // 更新计数
+    const countElement = document.getElementById(`${logType}-log-count`);
+    if (countElement) {
+        countElement.textContent = totalCount;
+    }
+    
+    if (logs.length === 0) {
+        container.innerHTML = '<div class="loading">暂无日志记录</div>';
+        return;
+    }
+    
+    let html = '';
+    
+    if (logType === 'llm') {
+        // LLM日志格式化
+        logs.forEach(log => {
+            html += `
+                <div class="log-entry llm-log">
+                    <div class="log-timestamp">${formatTimestamp(log.timestamp)}</div>
+                    <div class="log-context">${escapeHtml(log.context || '未知上下文')}</div>
+                    <div class="log-content">
+                        ${log.request ? `<strong>请求:</strong><div class="log-json">${formatJsonContent(log.request)}</div>` : ''}
+                        ${log.response ? `<strong>响应:</strong><div class="log-json">${formatJsonContent(log.response)}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    } else if (logType === 'system') {
+        // 系统日志格式化
+        logs.forEach(log => {
+            html += `
+                <div class="log-entry system-log">
+                    <div class="log-content">${escapeHtml(log)}</div>
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+    
+    // 滚动到底部显示最新日志
+    container.scrollTop = container.scrollHeight;
+}
+
+// 显示日志信息
+function displayLogInfo(data, container) {
+    const logDirectory = data.log_directory || '未知';
+    const files = data.files || [];
+    
+    let html = `
+        <div class="info-item">
+            <span class="info-label">日志目录:</span>
+            <span class="info-value">${escapeHtml(logDirectory)}</span>
+        </div>
+    `;
+    
+    if (files.length === 0) {
+        html += `
+            <div class="info-item">
+                <span class="info-label">日志文件:</span>
+                <span class="info-value">暂无日志文件</span>
+            </div>
+        `;
+    } else {
+        files.forEach(file => {
+            const sizeKB = (file.size / 1024).toFixed(2);
+            html += `
+                <div class="info-item">
+                    <div>
+                        <div class="info-label">${escapeHtml(file.filename)}</div>
+                        <div class="info-value">大小: ${sizeKB} KB | 修改时间: ${formatTimestamp(file.modified_time)}</div>
+                        <div class="info-value" style="font-size: 0.75rem; margin-top: 0.25rem;">${escapeHtml(file.full_path)}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+// 格式化时间戳
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '未知时间';
+    try {
+        const date = new Date(timestamp);
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        return timestamp;
+    }
+}
+
+// 格式化JSON内容
+function formatJsonContent(content) {
+    if (typeof content === 'string') {
+        return escapeHtml(content);
+    }
+    try {
+        return escapeHtml(JSON.stringify(content, null, 2));
+    } catch (error) {
+        return escapeHtml(String(content));
+    }
+}
+
+// HTML转义
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        text = String(text);
+    }
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 添加点击事件监听，关闭日志模态框
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('logs-modal');
+    if (e.target === modal) {
+        closeLogs();
+    }
+});

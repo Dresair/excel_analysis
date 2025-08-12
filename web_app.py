@@ -307,6 +307,90 @@ async def clear_session(session_id: str):
     else:
         raise HTTPException(status_code=404, detail="会话不存在")
 
+@app.get("/api/logs/llm")
+async def get_llm_logs(limit: int = 50):
+    """获取LLM交互日志"""
+    try:
+        log_file_path = path_manager.get_log_path('llm_interactions.log')
+        
+        if not log_file_path.exists():
+            return {"logs": [], "message": "日志文件不存在"}
+        
+        logs = []
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            # 获取最新的limit条日志
+            recent_lines = lines[-limit:] if len(lines) > limit else lines
+            
+            for line in recent_lines:
+                try:
+                    log_entry = json.loads(line.strip())
+                    logs.append(log_entry)
+                except json.JSONDecodeError:
+                    continue
+        
+        return {
+            "logs": logs,
+            "total_count": len(logs),
+            "file_path": str(log_file_path)
+        }
+        
+    except Exception as e:
+        logger.error(f"获取LLM日志失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/logs/system") 
+async def get_system_logs(limit: int = 100):
+    """获取系统日志"""
+    try:
+        log_file_path = path_manager.get_log_path('dialogue_service.log')
+        
+        if not log_file_path.exists():
+            return {"logs": [], "message": "系统日志文件不存在"}
+        
+        logs = []
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            # 获取最新的limit条日志
+            recent_lines = lines[-limit:] if len(lines) > limit else lines
+            logs = [line.strip() for line in recent_lines if line.strip()]
+        
+        return {
+            "logs": logs,
+            "total_count": len(logs),
+            "file_path": str(log_file_path)
+        }
+        
+    except Exception as e:
+        logger.error(f"获取系统日志失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/logs/info")
+async def get_logs_info():
+    """获取日志文件信息"""
+    try:
+        info = {
+            "log_directory": str(path_manager.writable_base_path / "log"),
+            "files": []
+        }
+        
+        log_dir = path_manager.writable_base_path / "log"
+        if log_dir.exists():
+            for log_file in log_dir.glob("*.log"):
+                stat = log_file.stat()
+                info["files"].append({
+                    "filename": log_file.name,
+                    "size": stat.st_size,
+                    "modified_time": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "full_path": str(log_file)
+                })
+        
+        return info
+        
+    except Exception as e:
+        logger.error(f"获取日志信息失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # 挂载静态文件
 static_dir = path_manager.get_resource_path("static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
