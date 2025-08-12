@@ -30,7 +30,7 @@ class ConfigManager:
         """从文件加载配置"""
         default_config = {
             "openai": {
-                "api_key": "sk-at-0b0e7e5415e7cb37a89700617f5e60d2b20893de093fbf632a750799477be62c",
+                "api_key": "sk-at-",
                 "base_url": "https://chat.appexnetworks.com/open-api/v1/relay/openai/v1",
                 "model": "gpt-4.1"
             },
