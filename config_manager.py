@@ -35,7 +35,7 @@ class ConfigManager:
         default_config = {
             "openai": {
                 "api_key": "",
-                "base_url": "https://api.openai.com/v1",
+                "base_url": "https://chat.appexnetworks.com/open-api/v1/relay/openai/v1",
                 "model": "gpt-4.1"
             },
             "ui": {
