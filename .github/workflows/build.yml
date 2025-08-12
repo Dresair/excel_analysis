@@ -41,7 +41,7 @@ jobs:
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          pyinstaller --onefile --windowed --optimize=2 --clean `
+          pyinstaller --onefile --console --optimize=2 --clean `
             --exclude-module tkinter `
             --exclude-module matplotlib `
             --exclude-module scipy `
@@ -66,7 +66,7 @@ jobs:
       - name: Build executable (Mac)
         if: matrix.os == 'macos-latest'
         run: |
-          pyinstaller --onefile --windowed --optimize=2 --clean \
+          pyinstaller --onefile --console --optimize=2 --clean \
             --exclude-module tkinter \
             --exclude-module matplotlib \
             --exclude-module scipy \
