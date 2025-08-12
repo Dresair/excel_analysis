@@ -1,4 +1,4 @@
-name: Build PPT生成工具 (Windows & macOS)
+name: Build PPTgenerator (Windows & macOS)
 
 on:
   push:
@@ -59,7 +59,7 @@ jobs:
             --add-data "static;static" `
             --add-data "prompts;prompts" `
             --add-data "模板.pptx;." `
-            --name "PPT生成工具" `
+            --name "PPTgenerator" `
             web_app.py
         shell: pwsh
 
@@ -84,7 +84,7 @@ jobs:
             --add-data "static:static" \
             --add-data "prompts:prompts" \
             --add-data "模板.pptx:." \
-            --name "PPT生成工具" \
+            --name "PPTgenerator" \
             web_app.py
         shell: bash
 
@@ -102,5 +102,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PPT生成工具-${{ matrix.os }}
+          name: PPTgenerator-${{ matrix.os }}
           path: dist/*
