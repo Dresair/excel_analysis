@@ -23,15 +23,19 @@ class ConfigManager:
         参数:
             config_file: 配置文件名
         """
-        self.config_file = path_manager.get_resource_path(config_file)
+        # 在打包环境中，配置文件应该保存在可写目录
+        # 首先尝试从可写目录加载，如果不存在，则从资源目录复制默认配置
+        self.config_file_writable = path_manager.writable_base_path / config_file
+        self.config_file_resource = path_manager.get_resource_path(config_file)
+        self.config_file = self.config_file_writable
         self.config = self._load_config()
     
     def _load_config(self) -> Dict[str, Any]:
         """从文件加载配置"""
         default_config = {
             "openai": {
-                "api_key": "sk-at-",
-                "base_url": "https://chat.appexnetworks.com/open-api/v1/relay/openai/v1",
+                "api_key": "",
+                "base_url": "https://api.openai.com/v1",
                 "model": "gpt-4.1"
             },
             "ui": {
@@ -41,16 +45,35 @@ class ConfigManager:
             }
         }
         
-        if os.path.exists(self.config_file):
+        # 优先从可写目录加载配置
+        if self.config_file_writable.exists():
             try:
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+                with open(self.config_file_writable, 'r', encoding='utf-8') as f:
                     loaded_config = json.load(f)
                     # 合并默认配置和加载的配置
                     self._merge_config(default_config, loaded_config)
+                    logger.info(f"从可写目录加载配置: {self.config_file_writable}")
                     return default_config
             except Exception as e:
-                logger.warning(f"加载配置文件失败，使用默认配置: {e}")
+                logger.warning(f"加载可写配置文件失败: {e}")
         
+        # 如果可写目录没有配置文件，尝试从资源目录复制
+        if self.config_file_resource.exists():
+            try:
+                with open(self.config_file_resource, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+                    self._merge_config(default_config, loaded_config)
+                    logger.info(f"从资源目录加载配置: {self.config_file_resource}")
+                    # 保存到可写目录
+                    self.save_config()
+                    return default_config
+            except Exception as e:
+                logger.warning(f"加载资源配置文件失败: {e}")
+        
+        # 如果都没有，使用默认配置并保存
+        logger.info("使用默认配置")
+        self.config = default_config
+        self.save_config()
         return default_config
     
     def _merge_config(self, default: Dict[str, Any], loaded: Dict[str, Any]):
@@ -65,10 +88,14 @@ class ConfigManager:
                 default[key] = value
     
     def save_config(self) -> bool:
-        """保存配置到文件"""
+        """保存配置到可写目录"""
         try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
+            # 确保目录存在
+            self.config_file_writable.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(self.config_file_writable, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, ensure_ascii=False, indent=2)
+            logger.info(f"配置已保存到: {self.config_file_writable}")
             return True
         except Exception as e:
             logger.error(f"保存配置文件失败: {e}")

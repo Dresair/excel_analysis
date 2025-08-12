@@ -276,6 +276,12 @@ async def update_config(config: ConfigUpdate):
         
         if config_manager.save_config():
             config_manager.apply_to_environment()
+            
+            # 重新初始化所有现有会话的LLM客户端
+            from llm_client import OpenAIConnector
+            llm_client = OpenAIConnector.get_instance()
+            llm_client.reinitialize_client()
+            
             return {"success": True, "message": "配置更新成功"}
         else:
             raise HTTPException(status_code=500, detail="配置保存失败")
@@ -289,23 +295,29 @@ async def get_config():
     """获取当前配置"""
     try:
         openai_config = config_manager.get_openai_config()
+        ui_config = config_manager.get_ui_config()
+        
+        # 隐藏API密钥的敏感信息
+        api_key = openai_config.get("api_key", "")
+        masked_api_key = ""
+        if api_key:
+            if len(api_key) > 10:
+                masked_api_key = api_key[:8] + "..." + api_key[-4:]
+            else:
+                masked_api_key = "***已设置***"
+        
         return {
-            "api_key": openai_config.get("api_key", ""),
+            "api_key": api_key,  # 返回完整key用于编辑
+            "api_key_masked": masked_api_key,  # 用于显示
             "base_url": openai_config.get("base_url", ""),
-            "model": openai_config.get("model", "")
+            "model": openai_config.get("model", ""),
+            "is_configured": config_manager.is_openai_configured(),
+            "config_file_path": str(config_manager.config_file_writable),
+            "ui": ui_config
         }
     except Exception as e:
         logger.error(f"获取配置失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/session/{session_id}")
-async def clear_session(session_id: str):
-    """清除会话"""
-    if session_id in sessions:
-        del sessions[session_id]
-        return {"success": True, "message": "会话已清除"}
-    else:
-        raise HTTPException(status_code=404, detail="会话不存在")
 
 @app.get("/api/logs/llm")
 async def get_llm_logs(limit: int = 50):
@@ -314,7 +326,7 @@ async def get_llm_logs(limit: int = 50):
         log_file_path = path_manager.get_log_path('llm_interactions.log')
         
         if not log_file_path.exists():
-            return {"logs": [], "message": "日志文件不存在"}
+            return {"logs": [], "total_count": 0, "has_content": False}
         
         logs = []
         with open(log_file_path, 'r', encoding='utf-8') as f:
@@ -332,6 +344,7 @@ async def get_llm_logs(limit: int = 50):
         return {
             "logs": logs,
             "total_count": len(logs),
+            "has_content": len(logs) > 0,
             "file_path": str(log_file_path)
         }
         
@@ -339,57 +352,16 @@ async def get_llm_logs(limit: int = 50):
         logger.error(f"获取LLM日志失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/logs/system") 
-async def get_system_logs(limit: int = 100):
-    """获取系统日志"""
-    try:
-        log_file_path = path_manager.get_log_path('dialogue_service.log')
-        
-        if not log_file_path.exists():
-            return {"logs": [], "message": "系统日志文件不存在"}
-        
-        logs = []
-        with open(log_file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            # 获取最新的limit条日志
-            recent_lines = lines[-limit:] if len(lines) > limit else lines
-            logs = [line.strip() for line in recent_lines if line.strip()]
-        
-        return {
-            "logs": logs,
-            "total_count": len(logs),
-            "file_path": str(log_file_path)
-        }
-        
-    except Exception as e:
-        logger.error(f"获取系统日志失败: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+@app.delete("/api/session/{session_id}")
+async def clear_session(session_id: str):
+    """清除会话"""
+    if session_id in sessions:
+        del sessions[session_id]
+        return {"success": True, "message": "会话已清除"}
+    else:
+        raise HTTPException(status_code=404, detail="会话不存在")
 
-@app.get("/api/logs/info")
-async def get_logs_info():
-    """获取日志文件信息"""
-    try:
-        info = {
-            "log_directory": str(path_manager.writable_base_path / "log"),
-            "files": []
-        }
-        
-        log_dir = path_manager.writable_base_path / "log"
-        if log_dir.exists():
-            for log_file in log_dir.glob("*.log"):
-                stat = log_file.stat()
-                info["files"].append({
-                    "filename": log_file.name,
-                    "size": stat.st_size,
-                    "modified_time": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                    "full_path": str(log_file)
-                })
-        
-        return info
-        
-    except Exception as e:
-        logger.error(f"获取日志信息失败: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
 
 # 挂载静态文件
 static_dir = path_manager.get_resource_path("static")

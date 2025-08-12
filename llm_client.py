@@ -28,27 +28,23 @@ class OpenAIConnector:
     
     def _initialize(self, api_key: Optional[str], **kwargs):
         """初始化 OpenAI 客户端"""
-        # 尝试获取API密钥，优先级：参数 > 环境变量
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "OpenAI API key is required. "
-                "Please provide it either as an argument or set the OPENAI_API_KEY environment variable."
-            )
-            
-        self.client = openai.OpenAI(api_key=api_key,base_url=os.getenv("OPENAI_BASE_URL"), **kwargs)
-        # 从环境变量读取默认模型，如果没有设置则使用 gpt-4o-mini
-        self.default_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        
-        # 工具注册和执行相关
+        # 首先初始化所有必要的属性
         self.tool_registry = None
         self.tool_context = {}
-
-        # 消息变量占位符处理器
         self.message_var_processor = MessageVariableProcessor()
-        
-        # LLM交互日志
         self.llm_logs: List[Dict[str, Any]] = []
+        
+        # 尝试获取API密钥，优先级：参数 > 环境变量
+        api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.default_model = os.getenv("OPENAI_MODEL", "gpt-4.1")
+        
+        # 如果有API密钥，初始化OpenAI客户端
+        if api_key:
+            self.client = openai.OpenAI(api_key=api_key, base_url=os.getenv("OPENAI_BASE_URL"), **kwargs)
+        else:
+            # 没有API密钥时，client为None，在使用时会提示用户配置
+            self.client = None
+            logger.warning("未配置OpenAI API密钥，请在设置中配置")
     
     @classmethod
     def get_instance(cls) -> 'OpenAIConnector':
@@ -88,6 +84,10 @@ class OpenAIConnector:
         返回:
             包含最终响应的字典
         """
+        # 检查是否已配置API密钥
+        if not self.client:
+            raise ValueError("未配置OpenAI API密钥，请在设置中配置API密钥")
+        
         model = model or self.default_model
         
         # 如果没有提供tools，尝试从tool_registry获取
@@ -305,22 +305,30 @@ class OpenAIConnector:
     
     def _log_llm_interaction(self, context: str, request: Any, response: Any):
         """
-        记录LLM交互日志
+        记录LLM交互日志到文件
         
         参数:
             context: 上下文标识
             request: 请求内容
             response: 响应内容
         """
+        # 简化的日志记录，只记录基本信息
         log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "context": context,
+            "has_request": request is not None,
+            "has_response": response is not None
+        }
+        
+        # 保留内存中的详细日志用于调试
+        self.llm_logs.append({
             "timestamp": datetime.now().isoformat(),
             "context": context,
             "request": request,
             "response": response
-        }
-        self.llm_logs.append(log_entry)
+        })
         
-        # 同时写入文件
+        # 写入简化的文件日志
         try:
             log_file_path = path_manager.get_log_path('llm_interactions.log')
             with open(log_file_path, 'a', encoding='utf-8') as f:
@@ -335,6 +343,17 @@ class OpenAIConnector:
     def set_tool_registry(self, tool_registry):
         """设置工具注册器"""
         self.tool_registry = tool_registry
+    
+    def reinitialize_client(self):
+        """重新初始化OpenAI客户端（用于配置更新后）"""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            base_url = os.getenv("OPENAI_BASE_URL")
+            self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
+            self.default_model = os.getenv("OPENAI_MODEL", "gpt-4.1")
+            logger.info("OpenAI客户端已重新初始化")
+        else:
+            logger.warning("未找到API密钥，无法初始化OpenAI客户端")
         # 同步登记已知工具名到变量处理器，提升占位符识别精准度
         try:
             for name in self.tool_registry.list_tools():

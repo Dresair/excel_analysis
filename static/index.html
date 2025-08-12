@@ -175,56 +175,19 @@
 
         <!-- 日志模态框 -->
         <div id="logs-modal" class="modal">
-            <div class="modal-content logs-modal-content">
+            <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-file-alt"></i> 系统日志</h3>
+                    <h3><i class="fas fa-file-alt"></i> LLM交互日志</h3>
                     <button class="modal-close" onclick="closeLogs()">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="logs-tabs">
-                        <button class="log-tab active" onclick="switchLogTab('llm')">LLM交互日志</button>
-                        <button class="log-tab" onclick="switchLogTab('system')">系统日志</button>
-                        <button class="log-tab" onclick="switchLogTab('info')">日志信息</button>
+                    <div class="log-controls">
+                        <button class="btn btn-sm" onclick="refreshLogs()">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                        <span class="log-count">日志条数: <span id="log-count">0</span></span>
                     </div>
-                    
-                    <div class="logs-content">
-                        <!-- LLM日志 -->
-                        <div id="llm-logs" class="log-panel active">
-                            <div class="log-controls">
-                                <button class="btn btn-sm" onclick="refreshLogs('llm')">
-                                    <i class="fas fa-sync-alt"></i> 刷新
-                                </button>
-                                <span class="log-count">日志条数: <span id="llm-log-count">0</span></span>
-                            </div>
-                            <div class="log-container" id="llm-log-container">
-                                <div class="loading">正在加载日志...</div>
-                            </div>
-                        </div>
-                        
-                        <!-- 系统日志 -->
-                        <div id="system-logs" class="log-panel">
-                            <div class="log-controls">
-                                <button class="btn btn-sm" onclick="refreshLogs('system')">
-                                    <i class="fas fa-sync-alt"></i> 刷新
-                                </button>
-                                <span class="log-count">日志条数: <span id="system-log-count">0</span></span>
-                            </div>
-                            <div class="log-container" id="system-log-container">
-                                <div class="loading">正在加载日志...</div>
-                            </div>
-                        </div>
-                        
-                        <!-- 日志信息 -->
-                        <div id="info-logs" class="log-panel">
-                            <div class="log-controls">
-                                <button class="btn btn-sm" onclick="refreshLogs('info')">
-                                    <i class="fas fa-sync-alt"></i> 刷新
-                                </button>
-                            </div>
-                            <div class="log-container" id="info-log-container">
-                                <div class="loading">正在加载日志信息...</div>
-                            </div>
-                        </div>
+                    <div class="log-container" id="log-container">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -241,22 +204,36 @@
                     <button class="modal-close" onclick="closeSettings()">&times;</button>
                 </div>
                 <div class="modal-body">
+                    <div class="config-status" id="config-status">
+                        <div class="status-item">
+                            <span class="status-label">配置状态:</span>
+                            <span class="status-value" id="config-status-text">检查中...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">配置文件:</span>
+                            <span class="status-value" id="config-file-path">加载中...</span>
+                        </div>
+                    </div>
+                    
                     <form id="settings-form">
                         <div class="form-group">
                             <label for="api-key">API Key:</label>
                             <input type="password" id="api-key" placeholder="请输入OpenAI API Key">
+                            <small class="form-hint">配置后将保存到本地配置文件中</small>
                         </div>
                         <div class="form-group">
                             <label for="base-url">API地址:</label>
                             <input type="text" id="base-url" placeholder="https://api.openai.com/v1">
+                            <small class="form-hint">OpenAI官方API地址或兼容的第三方地址</small>
                         </div>
                         <div class="form-group">
                             <label for="model">模型:</label>
                             <select id="model">
-                                <option value="gpt-4o-mini">gpt-4o-mini</option>
-                                <option value="gpt-4o">gpt-4o</option>
-                                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                                <option value="gpt-4.1">gpt-4.1 (推荐)</option>
+                                <option value="gpt-5">gpt-5</option>
+                                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
                             </select>
+                            <small class="form-hint">选择适合的模型，推荐使用gpt-4o-mini性价比更高</small>
                         </div>
                     </form>
                 </div>
