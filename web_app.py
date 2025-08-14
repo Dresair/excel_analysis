@@ -361,6 +361,32 @@ async def clear_session(session_id: str):
     else:
         raise HTTPException(status_code=404, detail="会话不存在")
 
+@app.get("/api/table-data/{data_id}")
+async def get_table_data(data_id: str):
+    """获取完整表格数据供复制功能使用"""
+    try:
+        # 尝试从所有会话中查找表格数据
+        table_data = None
+        for session_id, service in sessions.items():
+            if hasattr(service, 'message_var_processor'):
+                data = service.message_var_processor.get_table_data_for_copy(data_id)
+                if data:
+                    table_data = data
+                    break
+        
+        if not table_data:
+            raise HTTPException(status_code=404, detail="表格数据不存在或已过期")
+        
+        return {
+            "success": True,
+            "data": table_data['data'],
+            "headers": table_data['headers']
+        }
+        
+    except Exception as e:
+        logger.error(f"获取表格数据失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 # 挂载静态文件

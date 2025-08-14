@@ -769,6 +769,94 @@ function fallbackCopyToClipboard(text, successMessage) {
     }
 }
 
+// =============== 新增：完整数据复制功能 ===============
+async function copyFullTableData(dataId) {
+    try {
+        showNotification('正在获取完整数据...', 'info');
+        
+        const response = await fetch(`/api/table-data/${dataId}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.detail || '获取数据失败');
+        }
+        
+        const { data, headers } = result;
+        
+        // 生成制表符分隔的文本（Excel友好格式）
+        let copyText = headers.join('\t') + '\n';
+        data.forEach(row => {
+            const rowData = headers.map(header => {
+                const value = row[header] || '';
+                return String(value);
+            });
+            copyText += rowData.join('\t') + '\n';
+        });
+        
+        // 复制到剪贴板
+        await navigator.clipboard.writeText(copyText);
+        showNotification(`已复制全部 ${data.length} 行数据到剪贴板`, 'success');
+        
+        // 临时高亮复制按钮
+        highlightCopyButtonByDataId(dataId, 'copy-table-btn');
+        
+    } catch (error) {
+        console.error('复制完整数据失败:', error);
+        showNotification('复制失败: ' + error.message, 'error');
+    }
+}
+
+async function copyFullTableAsCSV(dataId) {
+    try {
+        showNotification('正在获取完整数据...', 'info');
+        
+        const response = await fetch(`/api/table-data/${dataId}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.detail || '获取数据失败');
+        }
+        
+        const { data, headers } = result;
+        
+        // 生成CSV格式文本
+        let csvText = headers.map(h => escapeCSVField(h)).join(',') + '\n';
+        data.forEach(row => {
+            const rowData = headers.map(header => {
+                const value = row[header] || '';
+                return escapeCSVField(String(value));
+            });
+            csvText += rowData.join(',') + '\n';
+        });
+        
+        // 复制到剪贴板
+        await navigator.clipboard.writeText(csvText);
+        showNotification(`已复制全部 ${data.length} 行CSV数据到剪贴板`, 'success');
+        
+        // 临时高亮复制按钮
+        highlightCopyButtonByDataId(dataId, 'copy-csv-btn');
+        
+    } catch (error) {
+        console.error('复制完整CSV数据失败:', error);
+        showNotification('复制失败: ' + error.message, 'error');
+    }
+}
+
+function highlightCopyButtonByDataId(dataId, buttonClass) {
+    // 根据data-id查找对应的复制按钮并添加高亮效果
+    const buttons = document.querySelectorAll(`.${buttonClass}`);
+    buttons.forEach(button => {
+        // 检查按钮的onclick属性是否包含该dataId
+        const onclick = button.getAttribute('onclick');
+        if (onclick && onclick.includes(dataId)) {
+            button.classList.add('copy-success');
+            setTimeout(() => {
+                button.classList.remove('copy-success');
+            }, 1500);
+        }
+    });
+}
+
 // 添加CSS动画
 const style = document.createElement('style');
 style.textContent = `

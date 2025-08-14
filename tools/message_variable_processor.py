@@ -35,6 +35,9 @@ class MessageVariableProcessor:
 
         # 已注册的工具名，用于占位符解析中的白名单匹配（可选）
         self._known_tools: set[str] = set()
+        
+        # 存储完整表格数据供复制功能使用
+        self._table_data_store: Dict[str, Dict[str, Any]] = {}
 
     def register_known_tool(self, tool_name: str):
         """登记一个可识别的工具名，提升占位符匹配的准确度。"""
@@ -168,8 +171,12 @@ class MessageVariableProcessor:
         display_data = data[:100]  # 最多显示100行
         show_more = len(data) > 100
         
-        # 生成唯一的表格ID
+        # 生成唯一的表格ID和数据ID
         table_id = f"table_{int(time.time()*1000)}"
+        data_id = f"data_{table_id}"
+        
+        # 将完整数据存储到全局变量中，供复制功能使用
+        self._store_table_data_for_copy(data_id, data, headers)
         
         # 生成表格容器HTML
         html_parts = ['<div class="table-container">']
@@ -181,11 +188,11 @@ class MessageVariableProcessor:
                 数据行数: {len(display_data)} / {len(data)}
             </div>
             <div class="table-actions">
-                <button class="copy-table-btn" onclick="copyTableData('{table_id}')" title="复制表格数据">
-                    <i class="fas fa-copy"></i> 复制数据
+                <button class="copy-table-btn" onclick="copyFullTableData('{data_id}')" title="复制全部表格数据">
+                    <i class="fas fa-copy"></i> 复制全部数据
                 </button>
-                <button class="copy-csv-btn" onclick="copyTableAsCSV('{table_id}')" title="复制为CSV格式">
-                    <i class="fas fa-file-csv"></i> 复制CSV
+                <button class="copy-csv-btn" onclick="copyFullTableAsCSV('{data_id}')" title="复制全部数据为CSV格式">
+                    <i class="fas fa-file-csv"></i> 复制全部CSV
                 </button>
             </div>
         </div>
@@ -228,11 +235,30 @@ class MessageVariableProcessor:
         html_parts.append('</table>')
         
         if show_more:
-            html_parts.append(f'<div class="table-more-info">显示前100行，共{len(data)}行数据。复制功能将包含所有显示的数据。</div>')
+            html_parts.append(f'<div class="table-more-info">显示前100行，共{len(data)}行数据。复制功能将包含全部{len(data)}行数据。</div>')
         
         html_parts.append('</div>')  # 结束table-container
         
         return ''.join(html_parts)
+    
+    def _store_table_data_for_copy(self, data_id: str, data: list, headers: list):
+        """存储完整表格数据供复制功能使用"""
+        self._table_data_store[data_id] = {
+            'data': data,
+            'headers': headers,
+            'timestamp': time.time()
+        }
+        
+        # 清理超过100个的旧数据
+        if len(self._table_data_store) > 100:
+            # 按时间戳排序，删除最旧的数据
+            sorted_items = sorted(self._table_data_store.items(), key=lambda x: x[1]['timestamp'])
+            for i in range(len(sorted_items) - 100):
+                del self._table_data_store[sorted_items[i][0]]
+    
+    def get_table_data_for_copy(self, data_id: str) -> Optional[Dict[str, Any]]:
+        """获取完整表格数据供复制功能使用"""
+        return self._table_data_store.get(data_id)
 
     # ---------------------------- 内部工具函数 ---------------------------- #
 
