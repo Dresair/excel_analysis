@@ -108,7 +108,6 @@ dist/
 # Excel test files
 *.xlsx
 *.xls
-!excel/5月业绩.xlsx
 
 # Temporary files
 *.tmp
