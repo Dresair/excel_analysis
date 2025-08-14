@@ -11,7 +11,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            arch: x64
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest-xlarge
+            arch: arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +35,7 @@ jobs:
 
       # 安装 UPX (不同系统不同方法)
       - name: Install UPX on macOS
-        if: matrix.os == 'macos-latest'
+        if: startsWith(matrix.os, 'macos-')
         run: brew install upx
 
       - name: Install UPX on Windows
@@ -64,7 +70,7 @@ jobs:
             web_app.py
         shell: pwsh
 
-      - name: Build executable (Mac)
+      - name: Build executable (Mac Intel)
         if: matrix.os == 'macos-latest'
         run: |
           pyinstaller --onefile --console --optimize=2 --clean \
@@ -86,14 +92,45 @@ jobs:
             --add-data "prompts:prompts" \
             --add-data "tools/pptx_json.json:tools" \
             --add-data "模板.pptx:." \
-            --name "PPTgenerator" \
+            --name "PPTgenerator-intel" \
+            web_app.py
+        shell: bash
+
+      - name: Build executable (Mac ARM)
+        if: matrix.os == 'macos-latest-xlarge'
+        run: |
+          pyinstaller --onefile --console --optimize=2 --clean \
+            --exclude-module tkinter \
+            --exclude-module matplotlib \
+            --exclude-module scipy \
+            --exclude-module IPython \
+            --exclude-module jupyter \
+            --exclude-module notebook \
+            --exclude-module pytest \
+            --exclude-module setuptools \
+            --exclude-module distutils \
+            --exclude-module pip \
+            --hidden-import=uvicorn.loops.auto \
+            --hidden-import=uvicorn.protocols.http.auto \
+            --hidden-import=uvicorn.protocols.websockets.auto \
+            --hidden-import=uvicorn.lifespan.on \
+            --add-data "static:static" \
+            --add-data "prompts:prompts" \
+            --add-data "tools/pptx_json.json:tools" \
+            --add-data "模板.pptx:." \
+            --name "PPTgenerator-arm64" \
             web_app.py
         shell: bash
 
       # 设置 macOS 可执行文件权限
-      - name: Set executable permissions (macOS)
+      - name: Set executable permissions (macOS Intel)
         if: matrix.os == 'macos-latest'
-        run: chmod +x dist/PPTgenerator
+        run: chmod +x dist/PPTgenerator-intel
+        shell: bash
+
+      - name: Set executable permissions (macOS ARM)
+        if: matrix.os == 'macos-latest-xlarge'
+        run: chmod +x dist/PPTgenerator-arm64
         shell: bash
 
       # 压缩（跳过失败的文件）
@@ -107,22 +144,34 @@ jobs:
         shell: bash
 
       # 再次设置权限（UPX压缩后可能丢失权限）
-      - name: Restore executable permissions (macOS)
+      - name: Restore executable permissions (macOS Intel)
         if: matrix.os == 'macos-latest'
-        run: chmod +x dist/PPTgenerator
+        run: chmod +x dist/PPTgenerator-intel
+        shell: bash
+
+      - name: Restore executable permissions (macOS ARM)
+        if: matrix.os == 'macos-latest-xlarge'
+        run: chmod +x dist/PPTgenerator-arm64
         shell: bash
 
       # macOS 代码签名 (ad-hoc签名，避免"未知开发者"警告)
-      - name: Code sign executable (macOS)
+      - name: Code sign executable (macOS Intel)
         if: matrix.os == 'macos-latest'
         run: |
-          codesign --force --deep --sign - dist/PPTgenerator
-          echo "macOS应用已签名，但仍需要用户首次运行时右键选择'打开'来绕过Gatekeeper"
+          codesign --force --deep --sign - dist/PPTgenerator-intel
+          echo "macOS Intel应用已签名"
+        shell: bash
+
+      - name: Code sign executable (macOS ARM)
+        if: matrix.os == 'macos-latest-xlarge'
+        run: |
+          codesign --force --deep --sign - dist/PPTgenerator-arm64
+          echo "macOS ARM应用已签名"
         shell: bash
 
       # 上传 Artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PPTgenerator-${{ matrix.os }}
+          name: PPTgenerator-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/*
