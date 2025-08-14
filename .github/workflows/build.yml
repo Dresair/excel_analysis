@@ -14,10 +14,10 @@ jobs:
         include:
           - os: windows-latest
             arch: x64
-          - os: macos-latest
+            suffix: ""
+          - os: macos-13  # Intel Mac (免费runner)
             arch: x64
-          - os: macos-latest-xlarge
-            arch: arm64
+            suffix: "-intel"
 
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +70,8 @@ jobs:
             web_app.py
         shell: pwsh
 
-      - name: Build executable (Mac Intel)
-        if: matrix.os == 'macos-latest'
+      - name: Build executable (Mac)
+        if: startsWith(matrix.os, 'macos-')
         run: |
           pyinstaller --onefile --console --optimize=2 --clean \
             --exclude-module tkinter \
@@ -92,45 +92,14 @@ jobs:
             --add-data "prompts:prompts" \
             --add-data "tools/pptx_json.json:tools" \
             --add-data "模板.pptx:." \
-            --name "PPTgenerator-intel" \
-            web_app.py
-        shell: bash
-
-      - name: Build executable (Mac ARM)
-        if: matrix.os == 'macos-latest-xlarge'
-        run: |
-          pyinstaller --onefile --console --optimize=2 --clean \
-            --exclude-module tkinter \
-            --exclude-module matplotlib \
-            --exclude-module scipy \
-            --exclude-module IPython \
-            --exclude-module jupyter \
-            --exclude-module notebook \
-            --exclude-module pytest \
-            --exclude-module setuptools \
-            --exclude-module distutils \
-            --exclude-module pip \
-            --hidden-import=uvicorn.loops.auto \
-            --hidden-import=uvicorn.protocols.http.auto \
-            --hidden-import=uvicorn.protocols.websockets.auto \
-            --hidden-import=uvicorn.lifespan.on \
-            --add-data "static:static" \
-            --add-data "prompts:prompts" \
-            --add-data "tools/pptx_json.json:tools" \
-            --add-data "模板.pptx:." \
-            --name "PPTgenerator-arm64" \
+            --name "PPTgenerator${{ matrix.suffix }}" \
             web_app.py
         shell: bash
 
       # 设置 macOS 可执行文件权限
-      - name: Set executable permissions (macOS Intel)
-        if: matrix.os == 'macos-latest'
-        run: chmod +x dist/PPTgenerator-intel
-        shell: bash
-
-      - name: Set executable permissions (macOS ARM)
-        if: matrix.os == 'macos-latest-xlarge'
-        run: chmod +x dist/PPTgenerator-arm64
+      - name: Set executable permissions (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: chmod +x dist/PPTgenerator${{ matrix.suffix }}
         shell: bash
 
       # 压缩（跳过失败的文件）
@@ -144,29 +113,17 @@ jobs:
         shell: bash
 
       # 再次设置权限（UPX压缩后可能丢失权限）
-      - name: Restore executable permissions (macOS Intel)
-        if: matrix.os == 'macos-latest'
-        run: chmod +x dist/PPTgenerator-intel
-        shell: bash
-
-      - name: Restore executable permissions (macOS ARM)
-        if: matrix.os == 'macos-latest-xlarge'
-        run: chmod +x dist/PPTgenerator-arm64
+      - name: Restore executable permissions (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: chmod +x dist/PPTgenerator${{ matrix.suffix }}
         shell: bash
 
       # macOS 代码签名 (ad-hoc签名，避免"未知开发者"警告)
-      - name: Code sign executable (macOS Intel)
-        if: matrix.os == 'macos-latest'
+      - name: Code sign executable (macOS)
+        if: startsWith(matrix.os, 'macos-')
         run: |
-          codesign --force --deep --sign - dist/PPTgenerator-intel
-          echo "macOS Intel应用已签名"
-        shell: bash
-
-      - name: Code sign executable (macOS ARM)
-        if: matrix.os == 'macos-latest-xlarge'
-        run: |
-          codesign --force --deep --sign - dist/PPTgenerator-arm64
-          echo "macOS ARM应用已签名"
+          codesign --force --deep --sign - dist/PPTgenerator${{ matrix.suffix }}
+          echo "macOS应用已签名"
         shell: bash
 
       # 上传 Artifact
