@@ -18,6 +18,9 @@ jobs:
           - os: macos-13  # Intel Mac (免费runner)
             arch: x64
             suffix: "-intel"
+          - os: macos-latest  # Apple Silicon Mac (M1/M2/M3)
+            arch: arm64
+            suffix: "-arm64"
 
     steps:
       - uses: actions/checkout@v4
