@@ -90,6 +90,12 @@ jobs:
             web_app.py
         shell: bash
 
+      # 设置 macOS 可执行文件权限
+      - name: Set executable permissions (macOS)
+        if: matrix.os == 'macos-latest'
+        run: chmod +x dist/PPTgenerator
+        shell: bash
+
       # 压缩（跳过失败的文件）
       - name: Compress with UPX
         run: |
@@ -98,6 +104,12 @@ jobs:
           else
             upx --best dist/* || echo "UPX compression failed, continuing..."
           fi
+        shell: bash
+
+      # 再次设置权限（UPX压缩后可能丢失权限）
+      - name: Restore executable permissions (macOS)
+        if: matrix.os == 'macos-latest'
+        run: chmod +x dist/PPTgenerator
         shell: bash
 
       # 上传 Artifact
