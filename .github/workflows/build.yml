@@ -112,6 +112,14 @@ jobs:
         run: chmod +x dist/PPTgenerator
         shell: bash
 
+      # macOS 代码签名 (ad-hoc签名，避免"未知开发者"警告)
+      - name: Code sign executable (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          codesign --force --deep --sign - dist/PPTgenerator
+          echo "macOS应用已签名，但仍需要用户首次运行时右键选择'打开'来绕过Gatekeeper"
+        shell: bash
+
       # 上传 Artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
